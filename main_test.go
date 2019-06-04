@@ -19,7 +19,7 @@ func TestHighlightLine(t *testing.T) {
 			"abc",
 			&configGroup{
 				Highlights: []highlight{
-					highlight{
+					{
 						rx: regexp.MustCompile("b"),
 						fg: termbox.ColorGreen,
 					},
@@ -31,7 +31,7 @@ func TestHighlightLine(t *testing.T) {
 			"xyz",
 			&configGroup{
 				Highlights: []highlight{
-					highlight{
+					{
 						rx: regexp.MustCompile("^y"),
 						fg: termbox.ColorGreen,
 					},
@@ -43,7 +43,7 @@ func TestHighlightLine(t *testing.T) {
 			"我的狗",
 			&configGroup{
 				Highlights: []highlight{
-					highlight{
+					{
 						rx: regexp.MustCompile("的狗"),
 						bg: termbox.AttrBold,
 						fg: termbox.ColorYellow,
