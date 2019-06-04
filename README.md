@@ -7,9 +7,18 @@
         <a href="https://godoc.org/github.com/fraugster/cwtch"><img src="https://img.shields.io/badge/godoc-reference-blue.svg?color=blue"></a>
         <a href="https://github.com/fraugster/cwtch/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2-blue.svg"></a>
 </p>
+
 ---
 
 cwtch is a `watch(1)` with configurable highlighting. It implements a subset of the options available in `watch(1)`.
+
+## Getting Started
+
+Install `cwtch` from your command line using `go get`:
+
+```bash
+go get github.com/fraugster/cwtch
+```
 
 ## Configuring highlighting
 
@@ -61,3 +70,23 @@ List of available attributes:
 * `reverse`
 
 For more examples, have a look at the `examples/` subdirectory.
+
+## Contributing
+
+If you want to hack on this repository, please read the short [CONTRIBUTING.md](CONTRIBUTING.md)
+guide first.
+
+## Versioning
+
+We use [SemVer](http://semver.org/) for versioning. For the versions, available,
+see the [tags on this repository][tags].
+
+## Authors
+
+- **Andreas Krennmair** - *Initial work* [akrennmair](https://github.com/akrennmair)
+
+See also the list of [contributors][contributors] who participated in this project.
+
+## License
+
+This project is licensed under the Apache-2 license - see the [LICENSE](LICENSE) file for details.
