@@ -1,0 +1,4 @@
+highlights:
+    - regex: Foobar
+      fg: blue
+      bg: red

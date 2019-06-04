@@ -1,0 +1,3 @@
+highlights:
+    - regex: Foobar
+      fg: foobar

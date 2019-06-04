@@ -1,0 +1,4 @@
+highlights:
+    - regex: quux
+      fg: yellow
+      bg: green

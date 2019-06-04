@@ -1,0 +1,26 @@
+# an example file with helpful highlighting for kubectl.
+# create a directory ~/.cwtch and copy this file into it.
+cmd_regex: kubectl # only apply this configuration if kubectl is found in the command
+highlights:
+  - regex: Running|Active
+    fg: green
+
+  - regex: "Pending|Terminating|Available|Init:"
+    fg: yellow
+
+  - regex: Completed|Succeeded|Bound|Released
+    fg: cyan, bold
+
+  - regex: Error|CrashLoopBackOff|Failed|Lost
+    fg: yellow, bold
+    bg: red
+
+  - regex: ContainerCreating
+    fg: magenta
+
+  - regex: Unknown
+    fg: cyan, bold
+    bg: magenta
+
+  - regex: 0/1
+    fg: yellow, bold
