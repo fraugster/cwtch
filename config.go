@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,8 +15,9 @@ import (
 )
 
 type config struct {
-	wait   time.Duration
-	groups []*configGroup
+	wait    time.Duration
+	noTitle bool
+	groups  []*configGroup
 }
 
 type highlight struct {
@@ -37,7 +37,7 @@ type configGroup struct {
 	Highlights []highlight    `yaml:"highlights"`
 }
 
-func loadConfig(configFile string, configDir string) (*config, error) {
+func loadConfig(configFile, configDir string) (*config, error) {
 	cfg := &config{}
 
 	d, err := os.Open(configDir)
@@ -51,7 +51,7 @@ func loadConfig(configFile string, configDir string) (*config, error) {
 			filename := filepath.Join(configDir, file)
 			cfgGroup, err := loadConfigFile(filename)
 			if err != nil {
-				log.Printf("WARN: couldn't load configuration file %q: %v\n", filename, err)
+				fmt.Printf("WARN: couldn't load configuration file %q: %v\n", filename, err)
 				continue
 			}
 			cfg.groups = append(cfg.groups, cfgGroup)
@@ -64,7 +64,7 @@ func loadConfig(configFile string, configDir string) (*config, error) {
 
 	cfgGroup, err := loadConfigFile(configFile)
 	if err != nil {
-		log.Printf("WARN: couldn't load configuration file %q: %v\n", configFile, err)
+		fmt.Printf("WARN: couldn't load configuration file %q: %v\n", configFile, err)
 		return cfg, nil
 	}
 
@@ -80,7 +80,11 @@ func loadConfigFile(file string) (*configGroup, error) {
 	if err != nil {
 		return cfg, nil
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Printf("WARN: couldn't close file %s: %v\n", file, err)
+		}
+	}()
 
 	if err := yaml.NewDecoder(f).Decode(cfg); err != nil {
 		return nil, err
@@ -112,8 +116,9 @@ func loadConfigFile(file string) (*configGroup, error) {
 	return cfg, nil
 }
 
-var (
-	attributeMap = map[string]termbox.Attribute{
+func combineAttributes(attrStr string) (attr termbox.Attribute, err error) {
+
+	attributeMap := map[string]termbox.Attribute{
 		"black":     termbox.ColorBlack,
 		"red":       termbox.ColorRed,
 		"green":     termbox.ColorGreen,
@@ -126,9 +131,7 @@ var (
 		"underline": termbox.AttrUnderline,
 		"reverse":   termbox.AttrReverse,
 	}
-)
 
-func combineAttributes(attrStr string) (attr termbox.Attribute, err error) {
 	attrStr = strings.TrimSpace(attrStr)
 	if attrStr == "" {
 		return attr, nil

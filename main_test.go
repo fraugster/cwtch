@@ -52,8 +52,32 @@ func TestHighlightLine(t *testing.T) {
 			},
 			[]pos{
 				{r: '我'}, {}, {},
-				{r: '的', bg: termbox.AttrBold, fg: termbox.ColorYellow}, {bg: termbox.AttrBold, fg: termbox.ColorYellow}, {bg: termbox.AttrBold, fg: termbox.ColorYellow},
-				{r: '狗', bg: termbox.AttrBold, fg: termbox.ColorYellow}, {bg: termbox.AttrBold, fg: termbox.ColorYellow}, {bg: termbox.AttrBold, fg: termbox.ColorYellow},
+				{
+					r:  '的',
+					bg: termbox.AttrBold,
+					fg: termbox.ColorYellow,
+				},
+				{
+					bg: termbox.AttrBold,
+					fg: termbox.ColorYellow,
+				},
+				{
+					bg: termbox.AttrBold,
+					fg: termbox.ColorYellow,
+				},
+				{
+					r:  '狗',
+					bg: termbox.AttrBold,
+					fg: termbox.ColorYellow,
+				},
+				{
+					bg: termbox.AttrBold,
+					fg: termbox.ColorYellow,
+				},
+				{
+					bg: termbox.AttrBold,
+					fg: termbox.ColorYellow,
+				},
 			},
 		},
 	}

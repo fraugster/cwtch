@@ -13,22 +13,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	waitSeconds *int
-	configFile  *string
-	configDir   *string
-	noTitle     *bool
-)
-
 func main() {
 	rootCmd := &cobra.Command{
 		Use: "cwtch",
 		Run: cwtchMain,
 	}
-	waitSeconds = rootCmd.PersistentFlags().IntP("interval", "n", 2, "seconds to wait between updates")
-	configFile = rootCmd.PersistentFlags().String("config", os.ExpandEnv("$HOME/.cwtch.yml"), "configuration file")
-	configDir = rootCmd.PersistentFlags().String("config-dir", os.ExpandEnv("$HOME/.cwtch"), "configuration directory")
-	noTitle = rootCmd.PersistentFlags().BoolP("no-title", "t", false, "turn off header")
+
+	rootCmd.PersistentFlags().IntP("interval", "n", 2, "seconds to wait between updates")
+	rootCmd.PersistentFlags().String("config", os.ExpandEnv("$HOME/.cwtch.yml"), "configuration file")
+	rootCmd.PersistentFlags().String("config-dir", os.ExpandEnv("$HOME/.cwtch"), "configuration directory")
+	rootCmd.PersistentFlags().BoolP("no-title", "t", false, "turn off header")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Printf("ERROR: %v\n", err)
@@ -37,21 +31,52 @@ func main() {
 
 func cwtchMain(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
-		cmd.Help()
+		if err := cmd.Help(); err != nil {
+			fmt.Printf("WARN: showing help failed: %v\n", err)
+		}
 		os.Exit(1)
 	}
 
 	command := strings.Join(args, " ")
 
-	cfg, err := loadConfig(*configFile, *configDir)
+	configFile, err := cmd.PersistentFlags().GetString("config")
 	if err != nil {
-		fmt.Printf("ERROR: failed load configuration file %s: %v\n", *configFile, err)
+		fmt.Printf("ERROR: failed to find configuration variable config: %v\n", err)
 		os.Exit(1)
 	}
 
-	cfg.wait = time.Duration(*waitSeconds) * time.Second
+	configDir, err := cmd.PersistentFlags().GetString("config-dir")
+	if err != nil {
+		fmt.Printf("ERROR: failed to find configuration variable config-dir: %v\n", err)
+		os.Exit(1)
+	}
 
-	termbox.Init()
+	cfg, err := loadConfig(configFile, configDir)
+	if err != nil {
+		fmt.Printf("ERROR: failed load configuration file %s: %v\n", configFile, err)
+		os.Exit(1)
+	}
+
+	waitSeconds, err := cmd.PersistentFlags().GetInt("interval")
+	if err != nil {
+		fmt.Printf("ERROR: failed to find configuration variable interval: %v\n", err)
+		os.Exit(1)
+	}
+
+	cfg.wait = time.Duration(waitSeconds) * time.Second
+
+	noTitle, err := cmd.PersistentFlags().GetBool("no-title")
+	if err != nil {
+		fmt.Printf("ERROR: failed to find configuration variable no-title: %v\n", err)
+		os.Exit(1)
+	}
+
+	cfg.noTitle = noTitle
+
+	if err := termbox.Init(); err != nil {
+		fmt.Printf("ERROR: failed to initialize terminal: %v\n", err)
+		os.Exit(1)
+	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	go func() {
@@ -101,7 +126,7 @@ func runCommand(ctx context.Context, cmdline string, cfg *config) {
 
 	y := 0
 
-	if !*noTitle {
+	if !cfg.noTitle {
 		hostname, err := os.Hostname()
 		if err != nil {
 			hostname = os.Getenv("HOSTNAME")
@@ -112,7 +137,8 @@ func runCommand(ctx context.Context, cmdline string, cfg *config) {
 
 		everyPrefix := fmt.Sprintf("Every %s: ", cfg.wait)
 
-		cmdlineMaxLen := width - len(dateStr) - len(everyPrefix) - 1 - 3 /* the -1 is for the space between cmdline and hostname, the -3 is for the ... */
+		/* the -1 is for the space between cmdline and hostname, the -3 is for the ... */
+		cmdlineMaxLen := width - len(dateStr) - len(everyPrefix) - 1 - 3
 
 		shownCmdline := cmdline
 		if cmdlineMaxLen <= 0 {
