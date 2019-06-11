@@ -105,8 +105,14 @@ func cwtchMain(cmd *cobra.Command, args []string) {
 }
 
 func runCommand(ctx context.Context, cmdline string, cfg *config) {
-	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
-	defer termbox.Flush()
+	if err := termbox.Clear(termbox.ColorDefault, termbox.ColorDefault); err != nil {
+		fmt.Printf("WARN: clearing terminal failed: %v\n", err)
+	}
+	defer func() {
+		if err := termbox.Flush(); err != nil {
+			fmt.Printf("WARN: flushing terminal failed: %v\n", err)
+		}
+	}()
 
 	var cfgGroup *configGroup
 
