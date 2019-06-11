@@ -90,3 +90,6 @@ See also the list of [contributors][contributors] who participated in this proje
 ## License
 
 This project is licensed under the Apache-2 license - see the [LICENSE](LICENSE) file for details.
+
+[tags]: https://github.com/fraugster/cwtch/tags
+[contributors]: https://github.com/fraugster/cwtch/graphs/contributors
