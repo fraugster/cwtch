@@ -2,7 +2,7 @@
 # create a directory ~/.cwtch and copy this file into it.
 cmd_regex: kubectl # only apply this configuration if kubectl is found in the command
 highlights:
-  - regex: Running|Active
+  - regex: Running|Active|Ready
     fg: green
 
   - regex: "Pending|Terminating|Available|Init:"
@@ -24,3 +24,10 @@ highlights:
 
   - regex: 0/1
     fg: yellow, bold
+
+  - regex: NotReady
+    fg: bold
+    bg: red
+
+  - regex: NAME|READY|STATUS|RESTARTS|AGE|ROLES|VERSION|IP|NODE|EXTERNAL-IP|OS-IMAGE|KERNEL-VERSION|CONTAINER-RUNTIME|DATA|DESIRED|SUCCESSFUL|TYPE|CLUSTER-IP|PORT\(S\)
+    fg: underline, bold
