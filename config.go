@@ -11,7 +11,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	termbox "github.com/nsf/termbox-go"
+	tcell "github.com/gdamore/tcell/v2"
 )
 
 type config struct {
@@ -25,9 +25,8 @@ type highlight struct {
 	Foreground string `yaml:"fg"`
 	Background string `yaml:"bg"`
 
-	rx *regexp.Regexp    `yaml:"-"`
-	fg termbox.Attribute `yaml:"-"`
-	bg termbox.Attribute `yaml:"-"`
+	rx    *regexp.Regexp `yaml:"-"`
+	style tcell.Style    `yaml:"-"`
 }
 
 type configGroup struct {
@@ -97,12 +96,8 @@ func loadConfigFile(file string) (*configGroup, error) {
 	}
 
 	for idx, hl := range cfg.Highlights {
-		cfg.Highlights[idx].fg, err = combineAttributes(hl.Foreground)
-		if err != nil {
-			return nil, err
-		}
 
-		cfg.Highlights[idx].bg, err = combineAttributes(hl.Background)
+		cfg.Highlights[idx].style, err = combineAttributes(hl.Foreground, hl.Background)
 		if err != nil {
 			return nil, err
 		}
@@ -116,36 +111,63 @@ func loadConfigFile(file string) (*configGroup, error) {
 	return cfg, nil
 }
 
-func combineAttributes(attrStr string) (attr termbox.Attribute, err error) {
+func combineAttributes(fgAttr, bgAttr string) (style tcell.Style, err error) {
+	style = tcell.StyleDefault
 
-	attributeMap := map[string]termbox.Attribute{
-		"black":     termbox.ColorBlack,
-		"red":       termbox.ColorRed,
-		"green":     termbox.ColorGreen,
-		"yellow":    termbox.ColorYellow,
-		"blue":      termbox.ColorBlue,
-		"magenta":   termbox.ColorMagenta,
-		"cyan":      termbox.ColorCyan,
-		"white":     termbox.ColorWhite,
-		"bold":      termbox.AttrBold,
-		"underline": termbox.AttrUnderline,
-		"reverse":   termbox.AttrReverse,
+	colorMap := map[string]tcell.Color{
+		"black":   tcell.ColorBlack,
+		"red":     tcell.ColorRed,
+		"green":   tcell.ColorGreen,
+		"yellow":  tcell.ColorYellow,
+		"blue":    tcell.ColorBlue,
+		"magenta": tcell.ColorFuchsia,
+		"cyan":    tcell.ColorAqua,
+		"white":   tcell.ColorWhite,
 	}
 
-	attrStr = strings.TrimSpace(attrStr)
-	if attrStr == "" {
-		return attr, nil
-	}
+	fgAttr = strings.TrimSpace(fgAttr)
+	if fgAttr != "" {
+		fgAttrs := strings.Split(fgAttr, ",")
+		for _, an := range fgAttrs {
+			an = strings.TrimSpace(an)
+			switch a := strings.ToLower(an); a {
+			case "bold":
+				style = style.Bold(true)
+			case "underline":
+				style = style.Underline(true)
+			case "reverse":
+				style = style.Reverse(true)
+			case "italic":
+				style = style.Italic(true)
+			case "blink":
+				style = style.Blink(true)
+			case "dim":
+				style = style.Dim(true)
+			case "strikethrough":
+				style = style.StrikeThrough(true)
+			default:
+				color, ok := colorMap[a]
+				if !ok {
+					return tcell.StyleDefault, fmt.Errorf("unknown foreground colour or attribute %q", an)
 
-	attrs := strings.Split(attrStr, ",")
-	for _, an := range attrs {
-		an = strings.TrimSpace(an)
-		attrValue, ok := attributeMap[strings.ToLower(an)]
-		if !ok {
-			return termbox.ColorDefault, fmt.Errorf("unknown colour or attribute %q", an)
-
+				}
+				style = style.Foreground(color)
+			}
 		}
-		attr |= attrValue
 	}
-	return attr, nil
+
+	bgAttr = strings.TrimSpace(bgAttr)
+	if bgAttr != "" {
+		bgAttrs := strings.Split(bgAttr, ",")
+		for _, an := range bgAttrs {
+			color, ok := colorMap[strings.ToLower(an)]
+			if !ok {
+				return tcell.StyleDefault, fmt.Errorf("unknown background colour %q", an)
+
+			}
+			style = style.Background(color)
+		}
+	}
+
+	return style, nil
 }

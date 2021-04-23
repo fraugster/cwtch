@@ -68,6 +68,10 @@ List of available attributes:
 * `bold`
 * `underline`
 * `reverse`
+* `italic`
+* `blink`
+* `dim`
+* `strikethrough`
 
 For more examples, have a look at the `examples/` subdirectory.
 
