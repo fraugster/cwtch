@@ -8,6 +8,7 @@ import (
 	"time"
 
 	tcell "github.com/gdamore/tcell/v2"
+	"github.com/mattn/go-runewidth"
 )
 
 func TestHighlightLine(t *testing.T) {
@@ -89,6 +90,43 @@ func TestHighlightLine(t *testing.T) {
 	}
 }
 
+func TestInputLoop(t *testing.T) {
+	scr := tcell.NewSimulationScreen("utf-8")
+	if err := scr.Init(); err != nil {
+		t.Fatalf("scr.Init failed: %v", err)
+	}
+	defer scr.Fini()
+
+	cfg := &config{
+		cmd:    `echo "hello world"`,
+		wait:   100 * time.Millisecond,
+		groups: []*configGroup{{}},
+	}
+
+	doneC := make(chan struct{})
+
+	go func() {
+		defer func() {
+			doneC <- struct{}{}
+		}()
+		inputLoop(scr, cfg)
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+
+	expectText(t, scr, 0, 2, "hello world ")
+
+	time.Sleep(100 * time.Millisecond)
+
+	scr.InjectKey(tcell.KeyCtrlC, 0, 0)
+
+	select {
+	case <-doneC:
+	case <-time.After(100 * time.Millisecond):
+		t.Fatalf("after sending Ctrl-C, input loop didn't return in a timely manner")
+	}
+}
+
 func TestRunCommand(t *testing.T) {
 	ctx := context.Background()
 
@@ -96,6 +134,7 @@ func TestRunCommand(t *testing.T) {
 	if err := scr.Init(); err != nil {
 		t.Fatalf("scr.Init failed: %v", err)
 	}
+	defer scr.Fini()
 
 	cfg := &config{
 		wait: 2 * time.Second,
@@ -111,36 +150,58 @@ func TestRunCommand(t *testing.T) {
 		},
 	}
 
-	runCommand(ctx, scr, `echo "hello world"`, cfg)
+	cfg.cmd = `echo "hello world"`
+	runCommand(ctx, scr, cfg)
 
-	contents, width, height := scr.GetContents()
-	_ = width
-	_ = height
+	expectText(t, scr, 0, 0, "Every 2s:")
+	expectText(t, scr, 0, 2, "hello world")
 
-	expectText(t, contents, "Every 2s:")
+	expectStyle(t, scr, 0, 2, tcell.StyleDefault, 2)
+	expectStyle(t, scr, 2, 2, tcell.StyleDefault.Foreground(tcell.ColorGreen), 2)
+	expectStyle(t, scr, 4, 2, tcell.StyleDefault, 7)
 
-	expectText(t, contents[2*width:], "hello world")
+	cfg.cmd = `echo "bye"`
+	runCommand(ctx, scr, cfg)
 
-	expectStyle(t, contents[2*width:2*width+2], tcell.StyleDefault)
-	expectStyle(t, contents[2*width+2:2*width+4], tcell.StyleDefault.Foreground(tcell.ColorGreen))
-	expectStyle(t, contents[2*width+4:2*width+11], tcell.StyleDefault)
-
+	expectText(t, scr, 0, 2, "bye        ")
+	expectStyle(t, scr, 0, 2, tcell.StyleDefault, 11)
 }
 
-func expectText(t *testing.T, contents []tcell.SimCell, expectedText string) {
+func expectText(t *testing.T, scr tcell.SimulationScreen, x, y int, expectedText string) {
+	contents, width, _ := scr.GetContents()
+
+	pos := y*width + x
+	endPos := pos + runewidth.StringWidth(expectedText)
+	if endPos > len(contents) {
+		t.Errorf("expected end position of text %q is past end of screen contents", expectedText)
+		return
+	}
+
+	contents = contents[pos:endPos]
+
 	idx := 0
 	for _, r := range expectedText {
 		if !reflect.DeepEqual(contents[idx].Runes, []rune{r}) {
-			t.Fatalf("contents at index %d differs: expected %c, got %s", idx, r, string(contents[idx].Runes))
+			t.Errorf("rune at row %d column %d differs: expected %c, got %s", y, x, r, string(contents[idx].Runes))
 		}
-		idx++
+		idx += runewidth.RuneWidth(r)
 	}
 }
 
-func expectStyle(t *testing.T, contents []tcell.SimCell, expectedStyle tcell.Style) {
+func expectStyle(t *testing.T, scr tcell.SimulationScreen, x, y int, expectedStyle tcell.Style, numCols int) {
+	contents, width, _ := scr.GetContents()
+
+	pos := y*width + x
+	endPos := pos + numCols
+	if endPos > len(contents) {
+		t.Errorf("expected end position is past end of screen contents")
+		return
+	}
+
+	contents = contents[pos:endPos]
 	for idx, c := range contents {
 		if c.Style != expectedStyle {
-			t.Fatalf("contents at index %d differs: expected style %v, got %v", idx, expectedStyle, c.Style)
+			t.Fatalf("contents at row %d column %d differs: expected style %v, got %v", y, x+idx, expectedStyle, c.Style)
 		}
 	}
 }

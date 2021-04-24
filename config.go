@@ -15,6 +15,7 @@ import (
 )
 
 type config struct {
+	cmd     string
 	wait    time.Duration
 	noTitle bool
 	groups  []*configGroup

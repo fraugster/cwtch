@@ -73,6 +73,8 @@ func cwtchMain(cmd *cobra.Command, args []string) {
 
 	cfg.noTitle = noTitle
 
+	cfg.cmd = command
+
 	scr, err := tcell.NewScreen()
 	if err != nil {
 		fmt.Printf("ERROR: couldn't create new screen: %v\n", err)
@@ -83,7 +85,12 @@ func cwtchMain(cmd *cobra.Command, args []string) {
 		fmt.Printf("ERROR: couldn't initialize screen: %v\n", err)
 		os.Exit(1)
 	}
+	defer scr.Fini()
 
+	inputLoop(scr, cfg)
+}
+
+func inputLoop(scr tcell.Screen, cfg *config) {
 	resizeC := make(chan struct{}, 1)
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
@@ -102,9 +109,7 @@ func cwtchMain(cmd *cobra.Command, args []string) {
 		}
 	}()
 
-	defer scr.Fini()
-
-	runCommand(ctx, scr, command, cfg)
+	runCommand(ctx, scr, cfg)
 
 	ticker := time.NewTicker(cfg.wait)
 	for {
@@ -112,14 +117,14 @@ func cwtchMain(cmd *cobra.Command, args []string) {
 		case <-ctx.Done():
 			return
 		case <-resizeC:
-			runCommand(ctx, scr, command, cfg)
+			runCommand(ctx, scr, cfg)
 		case <-ticker.C:
-			runCommand(ctx, scr, command, cfg)
+			runCommand(ctx, scr, cfg)
 		}
 	}
 }
 
-func runCommand(ctx context.Context, scr tcell.Screen, cmdline string, cfg *config) {
+func runCommand(ctx context.Context, scr tcell.Screen, cfg *config) {
 	defer func() {
 		scr.Show()
 	}()
@@ -134,7 +139,7 @@ func runCommand(ctx context.Context, scr tcell.Screen, cmdline string, cfg *conf
 			break
 		}
 
-		if group.cmdrx.Match([]byte(cmdline)) {
+		if group.cmdrx.Match([]byte(cfg.cmd)) {
 			cfgGroup = group
 			break
 		}
@@ -158,7 +163,7 @@ func runCommand(ctx context.Context, scr tcell.Screen, cmdline string, cfg *conf
 		/* the -1 is for the space between cmdline and hostname, the -3 is for the ... */
 		cmdlineMaxLen := width - len(dateStr) - len(everyPrefix) - 1 - 3
 
-		shownCmdline := cmdline
+		shownCmdline := cfg.cmd
 		if cmdlineMaxLen <= 0 {
 			shownCmdline = ""
 		} else if len(shownCmdline) > cmdlineMaxLen {
@@ -172,10 +177,10 @@ func runCommand(ctx context.Context, scr tcell.Screen, cmdline string, cfg *conf
 		y = 2 // if we show a title, we start at line 2.
 	}
 
-	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", cmdline)
+	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", cfg.cmd)
 	output, err := cmd.Output()
 	if err != nil {
-		writexy(scr, 0, 2, fmt.Sprintf("ERROR: failed to run %q: %v", cmdline, err))
+		writexy(scr, 0, 2, fmt.Sprintf("ERROR: failed to run %q: %v", cfg.cmd, err))
 		return
 	}
 
