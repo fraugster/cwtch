@@ -3,35 +3,36 @@ package main
 import (
 	"testing"
 
-	termbox "github.com/nsf/termbox-go"
+	tcell "github.com/gdamore/tcell/v2"
 )
 
 func TestCombineAttributes(t *testing.T) {
 	testData := []struct {
-		AttrStr      string
-		ExpectedAttr termbox.Attribute
-		ExpectErr    bool
+		FgAttrStr     string
+		BgAttrStr     string
+		ExpectedStyle tcell.Style
+		ExpectErr     bool
 	}{
-		{"black", termbox.ColorBlack, false},
-		{"", termbox.ColorDefault, false},
-		{"foo", 0, true},
-		{"green, bold", termbox.ColorGreen | termbox.AttrBold, false},
-		{"blue,reverse", termbox.ColorBlue | termbox.AttrReverse, false},
-		{"yellow,", 0, true},
-		{"red, foo", 0, true},
+		{"black", "", tcell.StyleDefault.Foreground(tcell.ColorBlack), false},
+		{"", "", tcell.StyleDefault, false},
+		{"foo", "", tcell.StyleDefault, true},
+		{"green, bold", "", tcell.StyleDefault.Foreground(tcell.ColorGreen).Bold(true), false},
+		{"blue,reverse", "", tcell.StyleDefault.Foreground(tcell.ColorBlue).Reverse(true), false},
+		{"yellow,", "", tcell.StyleDefault, true},
+		{"red, foo", "", tcell.StyleDefault, true},
 	}
 
 	for idx, tt := range testData {
-		attr, err := combineAttributes(tt.AttrStr)
+		style, err := combineAttributes(tt.FgAttrStr, tt.BgAttrStr)
 		if (err != nil) != tt.ExpectErr {
 			t.Fatalf("%d. expected error = %t, err = %v", idx, tt.ExpectErr, err)
 		}
 
-		if attr != tt.ExpectedAttr {
-			t.Fatalf("%d. expected attribute (%d) != returned attribute (%d)", idx, tt.ExpectedAttr, attr)
+		if style != tt.ExpectedStyle {
+			t.Fatalf("%d. expected attribute (%v) != returned attribute (%v)", idx, tt.ExpectedStyle, style)
 		}
 
-		t.Logf("%d. input = %q output = %d, %v", idx, tt.AttrStr, attr, err)
+		t.Logf("%d. input = %q %q output = %d, %v", idx, tt.FgAttrStr, tt.BgAttrStr, style, err)
 	}
 }
 
@@ -52,10 +53,8 @@ func TestLoadConfigFile(t *testing.T) {
 	for idx, tt := range testData {
 		cfg, err := loadConfigFile(tt.File)
 		if (err != nil) != tt.ExpectErr {
-			t.Errorf("%d. expected error = %t, err = %v", idx, tt.ExpectErr, err)
+			t.Errorf("%d. cfg = %v expected error = %t, err = %v", idx, cfg, tt.ExpectErr, err)
 		}
-
-		t.Logf("%d. input = %q output = %#v, %v", idx, tt.File, cfg, err)
 	}
 }
 

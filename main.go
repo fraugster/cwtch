@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	tcell "github.com/gdamore/tcell/v2"
 	runewidth "github.com/mattn/go-runewidth"
-	termbox "github.com/nsf/termbox-go"
 	"github.com/spf13/cobra"
 )
 
@@ -73,46 +73,63 @@ func cwtchMain(cmd *cobra.Command, args []string) {
 
 	cfg.noTitle = noTitle
 
-	if err := termbox.Init(); err != nil {
-		fmt.Printf("ERROR: failed to initialize terminal: %v\n", err)
+	cfg.cmd = command
+
+	scr, err := tcell.NewScreen()
+	if err != nil {
+		fmt.Printf("ERROR: couldn't create new screen: %v\n", err)
 		os.Exit(1)
 	}
+
+	if err := scr.Init(); err != nil {
+		fmt.Printf("ERROR: couldn't initialize screen: %v\n", err)
+		os.Exit(1)
+	}
+	defer scr.Fini()
+
+	inputLoop(scr, cfg)
+}
+
+func inputLoop(scr tcell.Screen, cfg *config) {
+	resizeC := make(chan struct{}, 1)
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	go func() {
 		defer cancelFunc()
 		for {
-			event := termbox.PollEvent()
-			if event.Type == termbox.EventKey && event.Key == termbox.KeyCtrlC {
-				return
+			event := scr.PollEvent()
+			switch ev := event.(type) {
+			case *tcell.EventResize:
+				resizeC <- struct{}{}
+			case *tcell.EventKey:
+				if ev.Key() == tcell.KeyCtrlC {
+					return
+				}
 			}
 		}
 	}()
 
-	defer termbox.Close()
-
-	runCommand(ctx, command, cfg)
+	runCommand(ctx, scr, cfg)
 
 	ticker := time.NewTicker(cfg.wait)
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-resizeC:
+			runCommand(ctx, scr, cfg)
 		case <-ticker.C:
-			runCommand(ctx, command, cfg)
+			runCommand(ctx, scr, cfg)
 		}
 	}
 }
 
-func runCommand(ctx context.Context, cmdline string, cfg *config) {
-	if err := termbox.Clear(termbox.ColorDefault, termbox.ColorDefault); err != nil {
-		fmt.Printf("WARN: clearing terminal failed: %v\n", err)
-	}
+func runCommand(ctx context.Context, scr tcell.Screen, cfg *config) {
 	defer func() {
-		if err := termbox.Flush(); err != nil {
-			fmt.Printf("WARN: flushing terminal failed: %v\n", err)
-		}
+		scr.Show()
 	}()
+
+	scr.Clear()
 
 	var cfgGroup *configGroup
 
@@ -122,13 +139,13 @@ func runCommand(ctx context.Context, cmdline string, cfg *config) {
 			break
 		}
 
-		if group.cmdrx.Match([]byte(cmdline)) {
+		if group.cmdrx.Match([]byte(cfg.cmd)) {
 			cfgGroup = group
 			break
 		}
 	}
 
-	width, height := termbox.Size()
+	width, height := scr.Size()
 
 	y := 0
 
@@ -139,31 +156,31 @@ func runCommand(ctx context.Context, cmdline string, cfg *config) {
 		}
 
 		dateStr := fmt.Sprintf("%s: %s", hostname, time.Now().Format(time.UnixDate))
-		writexy(width-runewidth.StringWidth(dateStr), 0, dateStr)
+		writexy(scr, width-runewidth.StringWidth(dateStr), 0, dateStr)
 
 		everyPrefix := fmt.Sprintf("Every %s: ", cfg.wait)
 
 		/* the -1 is for the space between cmdline and hostname, the -3 is for the ... */
 		cmdlineMaxLen := width - len(dateStr) - len(everyPrefix) - 1 - 3
 
-		shownCmdline := cmdline
+		shownCmdline := cfg.cmd
 		if cmdlineMaxLen <= 0 {
 			shownCmdline = ""
 		} else if len(shownCmdline) > cmdlineMaxLen {
 			shownCmdline = shownCmdline[:cmdlineMaxLen] + "..."
 		}
 
-		writexy(0, 0, everyPrefix+shownCmdline)
+		writexy(scr, 0, 0, everyPrefix+shownCmdline)
 
-		termbox.SetCursor(width-1, height-1)
+		scr.ShowCursor(width-1, height-1)
 
 		y = 2 // if we show a title, we start at line 2.
 	}
 
-	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", cmdline)
+	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", cfg.cmd)
 	output, err := cmd.Output()
 	if err != nil {
-		writexy(0, 2, fmt.Sprintf("ERROR: failed to run %q: %v", cmdline, err))
+		writexy(scr, 0, 2, fmt.Sprintf("ERROR: failed to run %q: %v", cfg.cmd, err))
 		return
 	}
 
@@ -177,7 +194,7 @@ func runCommand(ctx context.Context, cmdline string, cfg *config) {
 
 		x := 0
 		for i, r := range coloredLine {
-			termbox.SetCell(x, y, r.r, r.fg, r.bg)
+			scr.SetContent(x, y, r.r, nil, r.style)
 			if r.r == '\t' {
 				x += tabWidth - i%tabWidth
 			} else {
@@ -196,17 +213,16 @@ func runCommand(ctx context.Context, cmdline string, cfg *config) {
 	}
 }
 
-func writexy(x, y int, str string) {
+func writexy(scr tcell.Screen, x, y int, str string) {
 	for _, ch := range str {
-		termbox.SetCell(x, y, ch, termbox.ColorDefault, termbox.ColorDefault)
+		scr.SetContent(x, y, ch, nil, tcell.StyleDefault)
 		x += runewidth.RuneWidth(ch)
 	}
 }
 
 type pos struct {
-	r  rune
-	fg termbox.Attribute
-	bg termbox.Attribute
+	r     rune
+	style tcell.Style
 }
 
 func highlightLine(line string, cfg *configGroup) []pos {
@@ -220,8 +236,7 @@ func highlightLine(line string, cfg *configGroup) []pos {
 			indexes := hl.rx.FindAllStringIndex(line, -1)
 			for _, indexPair := range indexes {
 				for i := indexPair[0]; i < indexPair[1]; i++ {
-					runes[i].fg = hl.fg
-					runes[i].bg = hl.bg
+					runes[i].style = hl.style
 				}
 			}
 		}
