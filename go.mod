@@ -3,7 +3,7 @@ module github.com/fraugster/cwtch
 go 1.12
 
 require (
-	github.com/gdamore/tcell/v2 v2.2.1
+	github.com/gdamore/tcell/v2 v2.2.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.12
