@@ -32,7 +32,7 @@ func TestCombineAttributes(t *testing.T) {
 			t.Fatalf("%d. expected attribute (%v) != returned attribute (%v)", idx, tt.ExpectedStyle, style)
 		}
 
-		t.Logf("%d. input = %q %q output = %d, %v", idx, tt.FgAttrStr, tt.BgAttrStr, style, err)
+		t.Logf("%d. input = %q %q output = %v, %v", idx, tt.FgAttrStr, tt.BgAttrStr, style, err)
 	}
 }
 
