@@ -2,8 +2,7 @@
 <p align="center">
         <a href="https://github.com/fraugster/cwtch/releases"><img src="https://img.shields.io/github/tag/fraugster/cwtch.svg?label=version&color=brightgreen"></a>
         <a href="https://goreportcard.com/report/github.com/fraugster/cwtch"><img src="https://goreportcard.com/badge/github.com/fraugster/cwtch"></a>
-        <a href="https://codecov.io/gh/fraugster/cwtch"><img src="https://codecov.io/gh/fraugster/cwtch/branch/master/graph/badge.svg"/></a>
-        <a href="https://godoc.org/github.com/fraugster/cwtch"><img src="https://img.shields.io/badge/godoc-reference-blue.svg?color=blue"></a>
+        <a href="https://pkg.go.dev/github.com/fraugster/cwtch"><img src="https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=for-the-badge"></a>
         <a href="https://github.com/fraugster/cwtch/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2-blue.svg"></a>
 </p>
 
