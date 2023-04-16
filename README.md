@@ -1,7 +1,6 @@
 <h1 align="center">cwtch</h1>
 <p align="center">
         <a href="https://github.com/fraugster/cwtch/releases"><img src="https://img.shields.io/github/tag/fraugster/cwtch.svg?label=version&color=brightgreen"></a>
-        <a href="https://circleci.com/gh/fraugster/cwtch/tree/master"><img src="https://circleci.com/gh/fraugster/cwtch/tree/master.svg?style=shield"></a>
         <a href="https://goreportcard.com/report/github.com/fraugster/cwtch"><img src="https://goreportcard.com/badge/github.com/fraugster/cwtch"></a>
         <a href="https://codecov.io/gh/fraugster/cwtch"><img src="https://codecov.io/gh/fraugster/cwtch/branch/master/graph/badge.svg"/></a>
         <a href="https://godoc.org/github.com/fraugster/cwtch"><img src="https://img.shields.io/badge/godoc-reference-blue.svg?color=blue"></a>
