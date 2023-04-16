@@ -78,7 +78,7 @@ func loadConfigFile(file string) (*configGroup, error) {
 
 	f, err := os.Open(file)
 	if err != nil {
-		return cfg, nil
+		return cfg, nil // nolint:nilerr
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
