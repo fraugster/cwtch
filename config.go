@@ -9,9 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	tcell "github.com/gdamore/tcell/v2"
+	"gopkg.in/yaml.v3"
 )
 
 type config struct {

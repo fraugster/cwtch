@@ -12,10 +12,10 @@ cwtch is a `watch(1)` with configurable highlighting. It implements a subset of 
 
 ## Getting Started
 
-Install `cwtch` from your command line using `go get`:
+Install `cwtch` from your command line using `go install`:
 
 ```bash
-go get github.com/fraugster/cwtch
+go install github.com/fraugster/cwtch@latest
 ```
 
 ## Configuring highlighting
